@@ -235,7 +235,7 @@ class QueueMonitorCardEditor extends HTMLElement {
       <div class="field"><label>Warning threshold (seconds)</label><input type="number" min="0" data-key="warning_wait_seconds" value="${Number(c.warning_wait_seconds)}"></div>
       <div class="field"><label>Critical threshold (seconds)</label><input type="number" min="0" data-key="critical_wait_seconds" value="${Number(c.critical_wait_seconds)}"></div>
       <div class="field"><label>Empty queue message</label><input type="text" data-key="empty_message" value="${this._esc(c.empty_message)}"></div>
-      <div class="field"><label>Queues to display (comma-separated; blank means all)</label><input type="text" data-key="queues" value="${this._esc((c.queues || []).join(", "))}"></div>\n      <div class="field"><label>Queue nicknames (one per line: queue_name=nickname)</label><textarea rows="4" data-key="queue_nicknames_text">${this._esc(Object.entries(c.queue_nicknames || {}).map(([queue, nickname]) => `${queue}=${nickname}`).join("\\n"))}</textarea></div>`;
+      <div class="field"><label>Queues to display (comma-separated; blank means all)</label><input type="text" data-key="queues" value="${this._esc((c.queues || []).join(", "))}"></div>\n      <div class="field"><label>Queue nicknames (one per line: queue_name=nickname)</label><textarea rows="4" data-key="queue_nicknames_text">${this._esc(Object.entries(c.queue_nicknames || {}).map(([queue, nickname]) => `${queue}=${nickname}`).join("\n"))}</textarea></div>`;
     this.shadowRoot.querySelectorAll("[data-key]").forEach(input => {
       input.addEventListener("change", () => {
         const key = input.dataset.key;
@@ -244,7 +244,7 @@ class QueueMonitorCardEditor extends HTMLElement {
         else if (input.type === "number") value = Number(input.value);
         else if (key === "queues") value = input.value.split(",").map(s => s.trim()).filter(Boolean);
         else if (key === "queue_nicknames_text") {
-          value = Object.fromEntries(input.value.split("\\n").map(line => line.trim()).filter(Boolean).map(line => {
+          value = Object.fromEntries(input.value.split("\n").map(line => line.trim()).filter(Boolean).map(line => {
             const separator = line.indexOf("=");
             return separator < 0 ? [line, ""] : [line.slice(0, separator).trim(), line.slice(separator + 1).trim()];
           }).filter(([queue, nickname]) => queue && nickname));
