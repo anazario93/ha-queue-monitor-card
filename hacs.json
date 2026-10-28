@@ -1,3 +1,4 @@
 {
-  "name": "Asterisk Queue Monitor Card"
+  "name": "Asterisk Queue Monitor Card",
+  "filename": "queue-monitor-card.js"
 }
