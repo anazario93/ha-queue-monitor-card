@@ -46,6 +46,11 @@ queues:
   - sales
   - support
 
+# Optional display names; keys must match the actual Asterisk queue names.
+queue_nicknames:
+  sales: Sales Team
+  support: Customer Support
+
 warning_wait_seconds: 120
 critical_wait_seconds: 300
 empty_message: No calls waiting
@@ -65,11 +70,11 @@ empty_message: No calls waiting
 | `show_paused_agents` | `false` | Show paused-agent count |
 | `show_abandoned_calls` | `false` | Show abandoned-call counter |
 | `show_per_queue_summary` | `true` | Show counts for queues represented in the visible caller list |
-| `queues` | `[]` | Optional list of queue names to display |
+| `queues` | `[]` | Optional list of actual queue names to display |\n| `queue_nicknames` | `{}` | Map actual queue names to display nicknames in caller details and the per-queue summary |
 | `warning_wait_seconds` | `120` | Wait duration at which a caller is highlighted |
 | `critical_wait_seconds` | `300` | Wait duration at which a caller receives critical highlighting |
 
-The card reads state and attributes from the integration's sensors. Visibility options only affect presentation; they do not disable integration monitoring. Queue filtering affects the caller list and displayed total when one or more queues are explicitly selected.
+The card reads state and attributes from the integration's sensors. Visibility options only affect presentation; they do not disable integration monitoring. Queue filtering affects the caller list and displayed total when one or more queues are explicitly selected. Queue nicknames only change the displayed label; filtering must still use the actual Asterisk queue name. In the visual editor, enter one mapping per line as `actual_queue_name=Nickname`.
 
 ## Troubleshooting
 
