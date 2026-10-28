@@ -19,6 +19,7 @@ const DEFAULTS = {
   show_abandoned_calls: false,
   show_per_queue_summary: true,
   queues: [],
+  queue_nicknames: {},
   empty_message: "No calls waiting",
   warning_wait_seconds: 120,
   critical_wait_seconds: 300,
@@ -83,6 +84,11 @@ class QueueMonitorCard extends HTMLElement {
 
   _visibleCallers() { return this._allCallers(); }
 
+  _queueLabel(queue) {
+    const nickname = this._config.queue_nicknames?.[queue];
+    return String(nickname ?? "").trim() || queue;
+  }
+
   _escape(value) {
     return String(value ?? "").replace(/[&<>"']/g, char => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -121,7 +127,7 @@ class QueueMonitorCard extends HTMLElement {
       const level = caller.wait_seconds >= Number(c.critical_wait_seconds) ? "critical"
         : caller.wait_seconds >= Number(c.warning_wait_seconds) ? "warning" : "normal";
       const details = [];
-      if (c.show_queue_name) details.push(`<span class="detail">Queue: ${this._escape(caller.queue)}</span>`);
+      if (c.show_queue_name) details.push(`<span class="detail">Queue: ${this._escape(this._queueLabel(caller.queue))}</span>`);
       if (c.show_position) details.push(`<span class="detail">Position: ${this._escape(caller.position)}</span>`);
       if (c.show_caller_name && caller.caller_name) details.push(`<span class="detail">${this._escape(caller.caller_name)}</span>`);
       return `
@@ -137,7 +143,7 @@ class QueueMonitorCard extends HTMLElement {
 
     const queueSummary = c.show_per_queue_summary && Object.keys(queueCounts).length
       ? `<div class="queue-summary">${Object.entries(queueCounts).sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) =>
-          `<span class="queue-chip">${this._escape(name)} <b>${count}</b></span>`).join("")}</div>`
+          `<span class="queue-chip">${this._escape(this._queueLabel(name))} <b>${count}</b></span>`).join("")}</div>`
       : "";
     const waitingUnavailable = !this._state(c.waiting_calls_entity) || !this._state(c.available_agents_entity);
     this.shadowRoot.innerHTML = `
@@ -213,7 +219,7 @@ class QueueMonitorCardEditor extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         .field { display:block; margin:12px 0; } label { display:block; margin-bottom:5px; }
-        input[type=text], input[type=number] { box-sizing:border-box; width:100%; padding:9px; color:var(--primary-text-color); background:var(--card-background-color); border:1px solid var(--divider-color); border-radius:6px; }
+        input[type=text], input[type=number], textarea { box-sizing:border-box; width:100%; padding:9px; color:var(--primary-text-color); background:var(--card-background-color); border:1px solid var(--divider-color); border-radius:6px; }
         .toggle { display:flex; gap:8px; align-items:center; margin:10px 0; }
         h3 { margin-bottom:6px; }
       </style>
@@ -229,7 +235,7 @@ class QueueMonitorCardEditor extends HTMLElement {
       <div class="field"><label>Warning threshold (seconds)</label><input type="number" min="0" data-key="warning_wait_seconds" value="${Number(c.warning_wait_seconds)}"></div>
       <div class="field"><label>Critical threshold (seconds)</label><input type="number" min="0" data-key="critical_wait_seconds" value="${Number(c.critical_wait_seconds)}"></div>
       <div class="field"><label>Empty queue message</label><input type="text" data-key="empty_message" value="${this._esc(c.empty_message)}"></div>
-      <div class="field"><label>Queues to display (comma-separated; blank means all)</label><input type="text" data-key="queues" value="${this._esc((c.queues || []).join(", "))}"></div>`;
+      <div class="field"><label>Queues to display (comma-separated; blank means all)</label><input type="text" data-key="queues" value="${this._esc((c.queues || []).join(", "))}"></div>\n      <div class="field"><label>Queue nicknames (one per line: queue_name=nickname)</label><textarea rows="4" data-key="queue_nicknames_text">${this._esc(Object.entries(c.queue_nicknames || {}).map(([queue, nickname]) => `${queue}=${nickname}`).join("\\n"))}</textarea></div>`;
     this.shadowRoot.querySelectorAll("[data-key]").forEach(input => {
       input.addEventListener("change", () => {
         const key = input.dataset.key;
@@ -237,6 +243,15 @@ class QueueMonitorCardEditor extends HTMLElement {
         if (input.type === "checkbox") value = input.checked;
         else if (input.type === "number") value = Number(input.value);
         else if (key === "queues") value = input.value.split(",").map(s => s.trim()).filter(Boolean);
+        else if (key === "queue_nicknames_text") {
+          value = Object.fromEntries(input.value.split("\\n").map(line => line.trim()).filter(Boolean).map(line => {
+            const separator = line.indexOf("=");
+            return separator < 0 ? [line, ""] : [line.slice(0, separator).trim(), line.slice(separator + 1).trim()];
+          }).filter(([queue, nickname]) => queue && nickname));
+          this._config = { ...this._config, queue_nicknames: value };
+          this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this._config }, bubbles: true, composed: true }));
+          return;
+        }
         else value = input.value;
         this._config = { ...this._config, [key]: value };
         this.dispatchEvent(new CustomEvent("config-changed", {
